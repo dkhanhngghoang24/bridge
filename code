@@ -1,0 +1,75 @@
+#include <Servo.h>
+
+// Ultrasonic pins
+const int trigPin = 10;
+const int echoPin = 11;
+
+// Servo pins
+const int servo1Pin = 9;
+const int servo2Pin = 6;
+const int servo3Pin = 5;
+
+// Servo objects
+Servo servo1;
+Servo servo2;
+Servo servo3;
+
+// Distance variables
+long duration;
+float distance_cm;
+
+// Servo positions
+const int POS_DOWN = 0;   // cầu hạ
+const int POS_UP   = 90;  // cầu nâng
+
+void setup() {
+  Serial.begin(9600);
+
+  // Pin modes
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  // Attach servos
+  servo1.attach(servo1Pin);
+  servo2.attach(servo2Pin);
+  servo3.attach(servo3Pin);
+
+  // Set initial position
+  servo1.write(POS_DOWN);
+  servo2.write(POS_DOWN);
+  servo3.write(POS_DOWN);
+}
+
+float readDistanceCM() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH, 30000); // timeout tránh treo
+
+  return duration * 0.034 / 2.0;
+}
+
+void loop() {
+  distance_cm = readDistanceCM();
+
+  // Điều kiện phát hiện vật trong phạm vi
+  if (distance_cm >= 3 && distance_cm <= 14) {
+    servo1.write(POS_UP);
+    servo2.write(POS_UP);
+    servo3.write(POS_UP);
+    delay(200);
+  } else {
+    servo1.write(POS_DOWN);
+    servo2.write(POS_DOWN);
+    servo3.write(POS_DOWN);
+    delay(200);
+  }
+
+  // In lên Serial Monitor
+  Serial.print("Distance: ");
+  Serial.print(distance_cm);
+  Serial.println(" cm");
+}
