@@ -1,0 +1,96 @@
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const { exec } = require("child_process");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ===== FAKE DATABASE =====
+let users = [];
+
+// ===== AUTH =====
+app.post("/register", (req, res) => {
+    const { username, password } = req.body;
+    users.push({
+        username,
+        password,
+        progress: { cpp: [], python: [] }
+    });
+    res.json({ msg: "Đăng ký thành công" });
+});
+
+app.post("/login", (req, res) => {
+    const { username, password } = req.body;
+    const user = users.find(u => u.username === username && u.password === password);
+    res.json({ success: !!user });
+});
+
+// ===== LEARNING =====
+const lessons = [
+    {
+        title: "DFS",
+        theory: "Duyệt đồ thị theo chiều sâu",
+        cpp: `void dfs(int u) {
+    for (int v : adj[u]) dfs(v);
+}`,
+        python: `def dfs(u):
+    for v in adj[u]:
+        dfs(v)`
+    }
+];
+
+app.get("/lessons", (req, res) => {
+    res.json(lessons);
+});
+
+// ===== CHATBOT =====
+app.post("/chat", (req, res) => {
+    const { message } = req.body;
+
+    if (message.includes("dfs"))
+        return res.json({ reply: "DFS là duyệt sâu trước (Depth First Search)" });
+
+    if (message.includes("dp"))
+        return res.json({ reply: "DP là quy hoạch động" });
+
+    res.json({ reply: "Mình chưa hiểu rõ, hỏi lại nha 😄" });
+});
+
+// ===== CODE RUNNER =====
+app.post("/run", (req, res) => {
+    const { code, lang } = req.body;
+
+    if (lang === "cpp") {
+        fs.writeFileSync("main.cpp", code);
+
+        exec("g++ main.cpp -o main && main", (err, stdout, stderr) => {
+            if (err) return res.json({ error: stderr });
+            res.json({ output: stdout });
+        });
+
+    } else {
+        fs.writeFileSync("main.py", code);
+
+        exec("python main.py", (err, stdout, stderr) => {
+            if (err) return res.json({ error: stderr });
+            res.json({ output: stdout });
+        });
+    }
+});
+
+// ===== PROGRESS =====
+app.post("/save-progress", (req, res) => {
+    const { username, lang, lesson } = req.body;
+
+    const user = users.find(u => u.username === username);
+    if (user) {
+        user.progress[lang].push(lesson);
+        res.json({ msg: "Đã lưu tiến độ" });
+    } else {
+        res.json({ msg: "Không tìm thấy user" });
+    }
+});
+
+app.listen(5000, () => console.log("Server chạy tại http://localhost:5000"));
